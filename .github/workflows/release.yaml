@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release version tag (e.g. v0.1.0)"
+        required: true
+      extension:
+        description: "Extension to build and release"
+        required: true
+        type: choice
+        options:
+          - resource-tab-extension
+          - application-tab-extension
+          - system-level-extension
+          - status-panel-extension
+          - top-bar-action-menu-extension
+          - app-view-extension
+
+jobs:
+  build-and-release:
+    name: Build and Release ${{ github.event.inputs.extension }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: yarn --cwd ${{ github.event.inputs.extension }} install
+
+      - name: Build extension
+        run: yarn --cwd ${{ github.event.inputs.extension }} build
+
+      - name: Draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.extension }}-${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.extension }}-${{ github.event.inputs.tag }}
+          draft: true
+          files: |
+            ${{ github.event.inputs.extension }}/dist/extension.tar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

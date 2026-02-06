@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  detect-changes:
+    name: Detect changed extensions
+    runs-on: ubuntu-latest
+    outputs:
+      extensions: ${{ steps.filter.outputs.changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            resource-tab-extension: resource-tab-extension/**
+            application-tab-extension: application-tab-extension/**
+            system-level-extension: system-level-extension/**
+            status-panel-extension: status-panel-extension/**
+            top-bar-action-menu-extension: top-bar-action-menu-extension/**
+            app-view-extension: app-view-extension/**
+
+  build:
+    name: Build ${{ matrix.extension }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.extensions != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        extension: ${{ fromJson(needs.detect-changes.outputs.extensions) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: yarn --cwd ${{ matrix.extension }} install
+
+      - name: Build extension
+        run: yarn --cwd ${{ matrix.extension }} build
